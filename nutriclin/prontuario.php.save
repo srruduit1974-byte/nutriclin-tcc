@@ -1,0 +1,161 @@
+outline-light btn-sm">Sair</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container py-5">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-success">Prontuário</h2>
+        <button onclick="window.print()" class="btn btn-dark">Imprimir</button>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-success text-white">
+            <h4 class="mb-0"><?php echo htmlspecialchars($paciente['nome']); ?></h4>
+        </div>
+
+        <div class="card-body">
+            <div class="row">
+
+                <div class="col-md-3">
+                    <strong>CPF:</strong><br>
+                    <?php echo htmlspecialchars($paciente['cpf'] ?: 'Não informado'); ?>
+                </div>
+
+                <div class="col-md-3">
+                    <strong>Telefone:</strong><br>
+                    <?php echo htmlspecialchars($paciente['telefone'] ?: 'Não informado'); ?>
+                </div>
+
+                <div class="col-md-3">
+                    <strong>Nascimento:</strong><br>
+                    <?php
+                    if (!empty($paciente['data_nascimento'])) {
+                        echo date('d/m/Y', strtotime($paciente['data_nascimento']));
+                    } else {
+                        echo "Não informado";
+                    }
+                    ?>
+                </div>
+
+                <div class="col-md-3">
+                    <strong>Sexo:</strong><br>
+                    <?php
+                    echo $paciente['sexo'] == 'M' ? 'Masculino' :
+                        ($paciente['sexo'] == 'F' ? 'Feminino' : 'Outro');
+                    ?>
+                </div>
+
+            </div>
+
+            <hr>
+
+            <?php if ($paciente['aceite_lgpd']): ?>
+                <span class="badge bg-success">
+                    LGPD: Aceito
+                    <?php
+                    if (!empty($paciente['data_aceite'])) {
+                        echo " em " . date('d/m/Y H:i', strtotime($paciente['data_aceite']));
+                    }
+                    ?>
+                </span>
+            <?php else: ?>
+                <span class="badge bg-warning text-dark">LGPD: Pendente</span>
+                <a href="processa_aceite.php?id=<?php echo $paciente_id; ?>" class="btn btn-sm btn-success ms-2">
+                    Registrar aceite
+                </a>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="text-success mb-0">Histórico de Consultas</h4>
+                <a href="nova_avaliacao.php?id=<?php echo $paciente_id; ?>" class="btn btn-success">
+                    Nova Avaliação
+                </a>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-striped align-middle">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Peso</th>
+                            <th>Altura</th>
+                            <th>IMC</th>
+                            <th>Anotações</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <?php if ($consultas->num_rows > 0): ?>
+                            <?php while ($consulta = $consultas->fetch_assoc()): ?>
+                                <tr>
+                                    <td><?php echo date('d/m/Y H:i', strtotime($consulta['data_consulta'])); ?></td>
+                                    <td><?php echo number_format($consulta['peso'], 2, ',', '.'); ?> kg</td>
+                                    <td><?php echo number_format($consulta['altura'], 2, ',', '.'); ?> m</td>
+                                    <td><?php echo number_format($consulta['imc'], 2, ',', '.'); ?></td>
+                                    <td><?php echo htmlspecialchars($consulta['anotacoes'] ?: '-'); ?></td>
+                                </tr>
+                            <?php endwhile; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="5" class="text-center">Nenhuma consulta registrada.</td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="text-success mb-0">Planos Alimentares</h4>
+                <a href="planos_alimentares.php?id=<?php echo $paciente_id; ?>" class="btn btn-success">
+                    Novo Plano
+                </a>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-striped align-middle">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Título</th>
+                            <th>Descrição</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <?php if ($planos->num_rows > 0): ?>
+                            <?php while ($plano = $planos->fetch_assoc()): ?>
+                                <tr>
+                                    <td><?php echo date('d/m/Y', strtotime($plano['data_criacao'])); ?></td>
+                                    <td><?php echo htmlspecialchars($plano['titulo']); ?></td>
+                                    <td><?php echo nl2br(htmlspecialchars($plano['descricao'])); ?></td>
+                                </tr>
+                            <?php endwhile; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="3" class="text-center">Nenhum plano alimentar cadastrado.</td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+
+       </div>
+    </div>
+
+</div>
+
+</body>
+</html>
