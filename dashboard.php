@@ -1,13 +1,21 @@
 <?php
-include 'config.php';
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+require 'conexao.php';
+require 'config.php';
 
-if (!isset($_SESSION['nutricionista_id'])) {
+// Verifica se o usuário está logado
+if (!isset($_SESSION['usuario_id'])) {
     header("Location: login.php");
     exit();
 }
 
-$nome = $_SESSION['nome'] ?? 'Nutricionista';
+// Pega dados da sessão
+$tipo = $_SESSION['tipo'] ?? 'desconhecido';
+$nome = $_SESSION['nome'] ?? $_SESSION['user'] ?? 'Usuário';
 ?>
+
 
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -74,9 +82,9 @@ $nome = $_SESSION['nome'] ?? 'Nutricionista';
                     Registrar peso, altura, IMC e evolução clínica.
                 </p>
 
-                <a href="pacientes.php"
+                <a href="pacientes.php?id=1"
                    class="btn btn-warning w-100">
-                    Iniciar Avaliação
+                    Nova Avaliação
                 </a>
 
             </div>
@@ -94,9 +102,10 @@ $nome = $_SESSION['nome'] ?? 'Nutricionista';
                 </p>
 
                 <a href="pacientes.php"
-                   class="btn btn-primary w-100">
-                    Abrir Prontuários
-                </a>
+   class="btn btn-primary w-100">
+   Abrir Prontuários
+</a>
+
 
             </div>
         </div>

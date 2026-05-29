@@ -1,66 +1,21 @@
 <?php
-include 'config.php';
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+require 'conexao.php';
+require 'config.php';
 
-if (!isset($_SESSION['nutricionista_id'])) {
+// Se não estiver logado, volta para login
+if (!isset($_SESSION['usuario_id'])) {
     header("Location: login.php");
     exit();
 }
 
-$nutricionista_id = $_SESSION['nutricionista_id'];
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-
-    $paciente_id = intval($_POST['paciente_id']);
-    $data = $_POST['data'];
-    $hora = $_POST['hora'];
-    $observacoes = trim($_POST['observacoes']);
-
-    $data_hora = $data . ' ' . $hora . ':00';
-
-    $sql = "INSERT INTO agendamentos
-            (paciente_id, nutricionista_id, data_hora, observacoes)
-            VALUES (?, ?, ?, ?)";
-
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param(
-        "iiss",
-        $paciente_id,
-        $nutricionista_id,
-        $data_hora,
-        $observacoes
-    );
-
-    $stmt->execute();
-}
-
-$sql_pacientes = "
-    SELECT id, nome
-    FROM pacientes
-    WHERE nutricionista_id = ?
-    ORDER BY nome
-";
-
-$stmtPac = $conn->prepare($sql_pacientes);
-$stmtPac->bind_param("i", $nutricionista_id);
-$stmtPac->execute();
-$pacientes = $stmtPac->get_result();
-
-$sql_agenda = "
-    SELECT
-        a.*,
-        p.nome
-    FROM agendamentos a
-    INNER JOIN pacientes p
-        ON p.id = a.paciente_id
-    WHERE a.nutricionista_id = ?
-    ORDER BY a.data_hora ASC
-";
-
-$stmtAgenda = $conn->prepare($sql_agenda);
-$stmtAgenda->bind_param("i", $nutricionista_id);
-$stmtAgenda->execute();
-$agenda = $stmtAgenda->get_result();
+// Pega dados da sessão
+$tipo = $_SESSION['tipo'] ?? 'desconhecido';
+$nome = $_SESSION['nome'] ?? $_SESSION['user'] ?? 'Usuário';
 ?>
+
 
 <!DOCTYPE html>
 <html lang="pt-br">
