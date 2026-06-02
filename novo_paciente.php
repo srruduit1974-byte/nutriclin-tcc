@@ -1,16 +1,13 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-include 'config.php';
-indclue 'conexao.php';
+session_start();
+require 'config.php';
+require 'conexao.php';
 
-if (!isset($_SESSION['nutricionista_id'])) {
-    header("Location: login.php");
+if (!isset($_SESSION['usuario_id'])) {
+    header("Location: pacientes.php");
     exit();
 }
 
-$nutricionista_id = $_SESSION['nutricionista_id'];
 $mensagem = "";
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
@@ -21,16 +18,65 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $aceite_lgpd = isset($_POST['aceite_lgpd']) ? 1 : 0;
     $data_aceite = $aceite_lgpd ? date("Y-m-d H:i:s") : null;
 
-    $sql = "INSERT INTO pacientes (nome, cpf, telefone, sexo, aceite_lgpd, data_aceite, nutricionista_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?)";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("ssssisi", $nome, $cpf, $telefone, $sexo, $aceite_lgpd, $data_aceite, $nutricionista_id);
-    if ($stmt->execute()) {
-        $mensagem = "<div class='alert alert-success'>Paciente cadastrado com sucesso!</div>";
+    // 🔒 Validação obrigatória LGPD
+    if ($aceite_lgpd !== 1) {
+        $mensagem = "<div class='alert alert-danger'>É obrigatório aceitar o termo LGPD para cadastrar o paciente.</div>";
+    } else {
+        $nutricionista_id = $_SESSION['nutricionista_id'] ?? null;
+
+        $sql = "INSERT INTO pacientes (nome, cpf, telefone, sexo, aceite_lgpd, data_aceite, nutricionista_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?)";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("ssssisi", $nome, $cpf, $telefone, $sexo, $aceite_lgpd, $data_aceite, $nutricionista_id);
+
+        if ($stmt->execute()) {
+            $mensagem = "<div class='alert alert-success'>Paciente cadastrado com sucesso!</div>";
+        } else {
+            $mensagem = "<div class='alert alert-danger'>Erro ao cadastrar: {$stmt->error}</div>";
+        }
+        $stmt->close();
     }
-    $stmt->close();
+}
+?><?php
+session_start();
+require 'conexao.php';
+
+if (!isset($_SESSION['usuario_id'])) {
+    header("Location: index.php");
+    exit();
+}
+
+$mensagem = "";
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $nome = trim($_POST['nome']);
+    $cpf = trim($_POST['cpf']);
+    $telefone = trim($_POST['telefone']);
+    $sexo = $_POST['sexo'] ?? 'OUTRO';
+    $aceite_lgpd = isset($_POST['aceite_lgpd']) ? 1 : 0;
+    $data_aceite = $aceite_lgpd ? date("Y-m-d H:i:s") : null;
+
+    if ($aceite_lgpd !== 1) {
+        $mensagem = "<div class='alert alert-danger'>É obrigatório aceitar o termo LGPD para cadastrar o paciente.</div>";
+    } else {
+        $nutricionista_id = $_SESSION['nutricionista_id'] ?? null;
+
+        $sql = "INSERT INTO pacientes (nome, cpf, telefone, sexo, aceite_lgpd, data_aceite, nutricionista_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?)";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("ssssisi", $nome, $cpf, $telefone, $sexo, $aceite_lgpd, $data_aceite, $nutricionista_id);
+
+        if ($stmt->execute()) {
+            $mensagem = "<div class='alert alert-success'>Paciente cadastrado com sucesso!</div>";
+        } else {
+            $mensagem = "<div class='alert alert-danger'>Erro ao cadastrar: {$stmt->error}</div>";
+        }
+        $stmt->close();
+    }
 }
 ?>
+
+
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -69,7 +115,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <button type="button" class="btn btn-link" data-bs-toggle="modal" data-bs-target="#lgpdModal">
                 Ler termo de consentimento LGPD
             </button>
-            <input type="checkbox" name="aceite_lgpd" id="aceite_lgpd" class="form-check-input" disabled required>
+            <input type="checkbox" name="aceite_lgpd" id="aceite_lgpd" class="form-check-input" required>
             <label for="aceite_lgpd" class="form-check-label">
                 Li e aceito o uso dos dados conforme LGPD
             </label>

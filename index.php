@@ -65,6 +65,7 @@ require 'conexao.php'; // ajuste para seu arquivo de conexão
           </div>
           
           <!-- CADASTRO -->
+          <div class="ms-5 p-4 flex-grow-1">
           <form action="cadastro_usuario.php" method="POST">
           <div class="mb-3">
   <label for="tipo" class="form-label">Tipo de Usuário</label>

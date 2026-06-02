@@ -1,14 +1,18 @@
 <?php
+
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+
 include 'config.php';
+include 'conexao.php';
+
 
 if (!isset($_SESSION['nutricionista_id'])) {
     header("Location: login.php");
     exit();
 }
-
 $nutricionista_id = $_SESSION['nutricionista_id'];
 $paciente_id = filter_input(INPUT_GET, 'id', FILTER_SANITIZE_NUMBER_INT);
 

@@ -3,6 +3,7 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 include 'config.php';
+require 'conexao.php';
 
 if (!isset($_SESSION['nutricionista_id'])) {
     header("Location: login.php");

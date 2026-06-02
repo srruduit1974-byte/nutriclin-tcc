@@ -1,47 +1,60 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+session_start();
 require 'conexao.php';
 
+// Inclui o cabeçalho do Bootstrap caso queira que o alerta apareça formatado na tela
+echo '<link href="https://jsdelivr.net" rel="stylesheet">';
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $nome  = $_POST['nome'];
-    $email = $_POST['email'];
-    $senha = password_hash($_POST['senha'], PASSWORD_DEFAULT);
-    $tipo  = $_POST['tipo'];
-    $extra = $_POST['extra']; // CRN ou Matrícula
+    $tipo     = $_POST['tipo'];
+    $nome     = $_POST['nome'];
+    $telefone = $_POST['telefone'];
+    $email    = $_POST['email'];
+    $senha    = password_hash($_POST['senha'], PASSWORD_DEFAULT);
+    $extra    = $_POST['extra']; // CRN ou matrícula
 
-    // Inserir usuário
-    $sql = "INSERT INTO usuarios (email, senha, tipo) VALUES (?, ?, ?)";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("sss", $email, $senha, $tipo);
+    // [NOVO] 1. Verificar se o e-mail já existe para evitar erros na tela
+    $sqlCheck = "SELECT id_usuario FROM usuarios WHERE email = ?"; // Ajuste 'id_usuario' para o nome da sua chave primária
+    $stmtCheck = $conn->prepare($sqlCheck);
+    $stmtCheck->bind_param("s", $email);
+    $stmtCheck->execute();
+    $resultCheck = $stmtCheck->get_result();
 
-    if ($stmt->execute()) {
-        $usuario_id = $stmt->insert_id;
-
-        // Decide a tabela conforme o tipo
-        if ($tipo == 'nutricionista') {
-            $sql2 = "INSERT INTO nutricionistas (nome_nutricionista, crn, usuario_id) VALUES (?, ?, ?)";
-            $stmt2 = $conn->prepare($sql2);
-            $stmt2->bind_param("ssi", $nome, $extra, $usuario_id);
-            $stmt2->execute();
-            if (!$stmt2->execute()) {
-        echo "Erro ao inserir nutricionista: " . $stmt2->error;
+    if ($resultCheck->num_rows > 0) {
+        echo "<div class='container mt-4'><div class='alert alert-danger'>Este e-mail já está cadastrado!</div></div>";
+        echo "<script>setTimeout(function(){ window.history.back(); }, 2000);</script>";
+        exit;
     }
-        } else {
-            $sql2 = "INSERT INTO estagiarios (nome_estagiario, matricula, usuario_id) VALUES (?, ?, ?)";
-            $stmt2 = $conn->prepare($sql2);
-            $stmt2->bind_param("ssi", $nome, $extra, $usuario_id);
-            if (!$stmt2->execute()) {
-        echo "Erro ao inserir estagiario: " . $stmt2->error;
-    }
-            $stmt2->execute();
+
+    // 2. Inserir usuário
+    $sqlUser = "INSERT INTO usuarios (email, senha, tipo) VALUES (?, ?, ?)";
+    $stmtUser = $conn->prepare($sqlUser);
+    $stmtUser->bind_param("sss", $email, $senha, $tipo);
+
+    if ($stmtUser->execute()) {
+        $usuario_id = $stmtUser->insert_id;
+
+        // 3. Inserir nutricionista ou estagiário
+        if ($tipo === 'nutricionista') {
+            $sqlNutri = "INSERT INTO nutricionistas (nome, crn, telefone, usuario_id) VALUES (?, ?, ?, ?)";
+            $stmtNutri = $conn->prepare($sqlNutri);
+            $stmtNutri->bind_param("sssi", $nome, $extra, $telefone, $usuario_id);
+            $stmtNutri->execute();
+        } elseif ($tipo === 'estagiario') {
+            // [AJUSTADO] Adicionado o campo telefone também para o estagiário salvar corretamente
+            $sqlEst = "INSERT INTO estagiarios (nome_estagiario, matricula, telefone, usuario_id) VALUES (?, ?, ?, ?)";
+            $stmtEst = $conn->prepare($sqlEst);
+            $stmtEst->bind_param("sssi", $nome, $extra, $telefone, $usuario_id);
+            $stmtEst->execute();
         }
 
-        header("Location: index.php?msg=Cadastro realizado com sucesso");
-        exit();
+        // Alerta bonito do Bootstrap com redirecionamento automático para a tela de login (index.php)
+        echo "<div class='container mt-4'><div class='alert alert-success'>Cadastro realizado com sucesso! Redirecionando...</div></div>";
+        echo "<script>setTimeout(function(){ window.location.href='index.php'; }, 2000);</script>";
     } else {
-        echo "Erro ao cadastrar: " . $conn->error;
+        echo "<div class='container mt-4'><div class='alert alert-danger'>Erro ao cadastrar usuário: {$stmtUser->error}</div></div>";
     }
 }
 ?>
+
+

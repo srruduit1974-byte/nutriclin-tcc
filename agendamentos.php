@@ -1,4 +1,8 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -11,186 +15,107 @@ if (!isset($_SESSION['usuario_id'])) {
     exit();
 }
 
-// Pega dados da sessão
-$tipo = $_SESSION['tipo'] ?? 'desconhecido';
-$nome = $_SESSION['nome'] ?? $_SESSION['user'] ?? 'Usuário';
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $paciente_id = $_POST['paciente_id'];
+    $data = $_POST['data'];
+    $hora = $_POST['hora'];
+    $observacoes = $_POST['observacoes'];
+
+    $dataHora = $data . ' ' . $hora;
+
+    // 1. Busca o ID da nutricionista baseado no usuário logado na sessão
+    $sqlNutri = "SELECT id FROM nutricionistas WHERE usuario_id = ?";
+    $stmtNutri = $conn->prepare($sqlNutri);
+    $stmtNutri->bind_param("i", $_SESSION['usuario_id']);
+    $stmtNutri->execute();
+    $resultNutri = $stmtNutri->get_result();
+    $nutriData = $resultNutri->fetch_assoc();
+
+    // Se não encontrar nenhuma nutricionista ligada a esse usuário logado
+    if (!$nutriData) {
+        die("Erro: Seu usuário não está cadastrado ou vinculado como uma Nutricionista no sistema.");
+    }
+
+    $nutricionista_id = $nutriData['id'];
+
+    // 2. Realiza o agendamento com o ID correto da nutricionista
+    $sqlInsert = "INSERT INTO agendamentos (paciente_id, nutricionista_id, data_hora, observacoes, status) 
+                  VALUES (?, ?, ?, ?, 'agendada')";
+    $stmt = $conn->prepare($sqlInsert);
+    
+    // Agora passamos a variável $nutricionista_id correta aqui
+    $stmt->bind_param("iiss", $paciente_id, $nutricionista_id, $dataHora, $observacoes);
+
+    if (!$stmt->execute()) {
+        die("Erro ao agendar: " . $stmt->error);
+    }
+    
+    // Redireciona para recarregar a página com sucesso e evitar reenvio de dados ao dar F5
+    header("Location: agendamentos.php?sucesso=1");
+    exit();
+}
+
+// --- BUSCA PACIENTES PARA MANDAR PRO SELECT DO FORMULÁRIO ---
+$sqlPacientes = "SELECT id, nome FROM pacientes";
+$resultPacientes = $conn->query($sqlPacientes);
 ?>
-
-
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Agenda - NutriClin</title>
-
-<link rel="stylesheet"
-href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
-
-<link rel="stylesheet"
-href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <meta charset="UTF-8">
+    <title>Sistema Nutriclin - Agendamentos</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background-color: #f4f7f6; }
+        .container { max-width: 500px; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin: 0 auto; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        select, input, textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { background-color: #2ecc71; color: white; border: none; padding: 12px; width: 100%; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        button:hover { background-color: #27ae60; }
+        .alerta-sucesso { background-color: #d4edda; color: #155724; padding: 15px; border-radius: 4px; margin-bottom: 20px; text-align: center; }
+        .nav-link { display: block; text-align: center; margin-top: 15px; color: #3498db; text-decoration: none; }
+    </style>
 </head>
+<body>
 
-<body class="bg-light">
-
-<nav class="navbar navbar-expand-lg navbar-dark bg-success shadow-sm">
 <div class="container">
+    <h2>Novo Agendamento</h2>
 
-<a class="navbar-brand fw-bold"
-href="dashboard.php">
-NutriClin
-</a>
+    <?php if (isset($_GET['sucesso'])): ?>
+        <div class="alerta-sucesso">Agendamento realizado com sucesso!</div>
+    <?php endif; ?>
 
-<div>
-<a href="dashboard.php"
-class="btn btn-outline-light btn-sm me-1">
-Dashboard
-</a>
+    <form action="agendamentos.php" method="POST">
+        <div class="form-group">
+            <label for="paciente_id">Paciente:</label>
+            <select name="paciente_id" id="paciente_id" required>
+                <option value="">Selecione um paciente...</option>
+                <?php while($paciente = $resultPacientes->fetch_assoc()): ?>
+                    <option value="<?php echo $paciente['id']; ?>"><?php echo htmlspecialchars($paciente['nome']); ?></option>
+                <?php endwhile; ?>
+            </select>
+        </div>
 
-<a href="pacientes.php"
-class="btn btn-outline-light btn-sm me-1">
-Pacientes
-</a>
+        <div class="form-group">
+            <label for="data">Data:</label>
+            <input type="date" name="data" id="data" required>
+        </div>
 
-<a href="logout.php"
-class="btn btn-danger btn-sm">
-Sair
-</a>
+        <div class="form-group">
+            <label for="hora">Horário:</label>
+            <input type="time" name="hora" id="hora" required>
+        </div>
+
+        <div class="form-group">
+            <label for="observacoes">Observações (Opcional):</label>
+            <textarea name="observacoes" id="observacoes" rows="4"></textarea>
+        </div>
+
+        <button type="submit">Confirmar Agendamento</button>
+    </form>
+    
+    <a href="dashboard.php" class="nav-link">Voltar ao Painel</a>
 </div>
-
-</div>
-</nav>
-
-<div class="container py-5">
-
-<h2 class="text-success mb-4">
-📅 Agenda de Consultas
-</h2>
-
-<div class="card shadow-sm mb-4">
-<div class="card-body">
-
-<form method="POST">
-
-<div class="row">
-
-<div class="col-md-4 mb-3">
-<label class="form-label">Paciente</label>
-
-<select name="paciente_id"
-class="form-select"
-required>
-
-<option value="">
-Selecione
-</option>
-
-<?php while($p = $pacientes->fetch_assoc()): ?>
-
-<option value="<?= $p['id'] ?>">
-<?= htmlspecialchars($p['nome']) ?>
-</option>
-
-<?php endwhile; ?>
-
-</select>
-</div>
-
-<div class="col-md-3 mb-3">
-<label class="form-label">Data</label>
-
-<input type="date"
-name="data"
-class="form-control"
-required>
-</div>
-
-<div class="col-md-3 mb-3">
-<label class="form-label">Hora</label>
-
-<input type="time"
-name="hora"
-class="form-control"
-required>
-</div>
-
-<div class="col-md-2 mb-3 d-flex align-items-end">
-
-<button type="submit"
-class="btn btn-success w-100">
-
-Agendar
-
-</button>
-
-</div>
-
-</div>
-
-<div class="mb-3">
-<label class="form-label">
-Observações
-</label>
-
-<textarea
-name="observacoes"
-class="form-control"
-rows="3"></textarea>
-</div>
-
-</form>
-
-</div>
-</div>
-
-<div class="card shadow-sm">
-<div class="card-body">
-
-<h4>Consultas Agendadas</h4>
-
-<table class="table table-striped">
-
-<thead>
-<tr>
-<th>Paciente</th>
-<th>Data/Hora</th>
-<th>Status</th>
-</tr>
-</thead>
-
-<tbody>
-
-<?php while($a = $agenda->fetch_assoc()): ?>
-
-<tr>
-
-<td>
-<?= htmlspecialchars($a['nome']) ?>
-</td>
-
-<td>
-<?= date('d/m/Y H:i', strtotime($a['data_hora'])) ?>
-</td>
-
-<td>
-<?= htmlspecialchars($a['status']) ?>
-</td>
-
-</tr>
-
-<?php endwhile; ?>
-
-</tbody>
-
-</table>
-
-</div>
-</div>
-
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
 </html>
