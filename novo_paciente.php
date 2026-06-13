@@ -1,10 +1,11 @@
 <?php
 session_start();
-require 'config.php';
+require 'config.php'; // Inclui as configurações se necessário
 require 'conexao.php';
 
+// Proteção da página: se não estiver logado, joga para o index (login)
 if (!isset($_SESSION['usuario_id'])) {
-    header("Location: pacientes.php");
+    header("Location: index.php");
     exit();
 }
 
@@ -26,55 +27,23 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         $sql = "INSERT INTO pacientes (nome, cpf, telefone, sexo, aceite_lgpd, data_aceite, nutricionista_id)
                 VALUES (?, ?, ?, ?, ?, ?, ?)";
+        
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("ssssisi", $nome, $cpf, $telefone, $sexo, $aceite_lgpd, $data_aceite, $nutricionista_id);
 
         if ($stmt->execute()) {
-            $mensagem = "<div class='alert alert-success'>Paciente cadastrado com sucesso!</div>";
+            $stmt->close();
+            // Redireciona direto para a página de pacientes após cadastrar
+            header("Location: pacientes.php");
+            exit();
         } else {
             $mensagem = "<div class='alert alert-danger'>Erro ao cadastrar: {$stmt->error}</div>";
+            $stmt->close();
         }
-        $stmt->close();
-    }
-}
-?><?php
-session_start();
-require 'conexao.php';
-
-if (!isset($_SESSION['usuario_id'])) {
-    header("Location: index.php");
-    exit();
-}
-
-$mensagem = "";
-
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $nome = trim($_POST['nome']);
-    $cpf = trim($_POST['cpf']);
-    $telefone = trim($_POST['telefone']);
-    $sexo = $_POST['sexo'] ?? 'OUTRO';
-    $aceite_lgpd = isset($_POST['aceite_lgpd']) ? 1 : 0;
-    $data_aceite = $aceite_lgpd ? date("Y-m-d H:i:s") : null;
-
-    if ($aceite_lgpd !== 1) {
-        $mensagem = "<div class='alert alert-danger'>É obrigatório aceitar o termo LGPD para cadastrar o paciente.</div>";
-    } else {
-        $nutricionista_id = $_SESSION['nutricionista_id'] ?? null;
-
-        $sql = "INSERT INTO pacientes (nome, cpf, telefone, sexo, aceite_lgpd, data_aceite, nutricionista_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?)";
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("ssssisi", $nome, $cpf, $telefone, $sexo, $aceite_lgpd, $data_aceite, $nutricionista_id);
-
-        if ($stmt->execute()) {
-            $mensagem = "<div class='alert alert-success'>Paciente cadastrado com sucesso!</div>";
-        } else {
-            $mensagem = "<div class='alert alert-danger'>Erro ao cadastrar: {$stmt->error}</div>";
-        }
-        $stmt->close();
     }
 }
 ?>
+
 
 
 <!DOCTYPE html>
@@ -155,5 +124,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     </form>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<?php include 'rodape.php'; ?>
+
 </body>
 </html>

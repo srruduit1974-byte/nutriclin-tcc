@@ -184,5 +184,7 @@ inputAltura.addEventListener('input', calcularIMCLive);
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<?php include 'rodape.php'; ?>
+
 </body>
 </html>

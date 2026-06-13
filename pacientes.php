@@ -134,13 +134,14 @@ if ($tipo === 'nutricionista') {
         <table>
             <thead>
                 <tr>
-                    <th>Nome</th>
-                    <th>CPF</th>
-                    <th>Telefone</th>
-                    <th>Próxima Consulta</th>
-                    <th>LGPD</th>
-                    <th>Ações</th>
-                </tr>
+    <th>Nome</th>
+    <th class="cpf-col">CPF</th>
+    <th>Telefone</th>
+    <th>Próxima Consulta</th>
+    <th>LGPD</th>
+    <th>Ações</th>
+</tr>
+
             </thead>
             <tbody>
                 <?php if ($pacientes && $pacientes->num_rows > 0): ?>
@@ -182,6 +183,7 @@ if ($tipo === 'nutricionista') {
         </table>
     </div>
 </div>
+<?php include 'rodape.php'; ?>
 
 </body>
 </html>

@@ -14,11 +14,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $extra    = $_POST['extra']; // CRN ou matrícula
 
     // [NOVO] 1. Verificar se o e-mail já existe para evitar erros na tela
-    $sqlCheck = "SELECT id_usuario FROM usuarios WHERE email = ?"; // Ajuste 'id_usuario' para o nome da sua chave primária
+    $sqlCheck = "SELECT id FROM usuarios WHERE email = ?"; // Ajuste 'id_usuario' para o nome da sua chave primária
     $stmtCheck = $conn->prepare($sqlCheck);
     $stmtCheck->bind_param("s", $email);
     $stmtCheck->execute();
     $resultCheck = $stmtCheck->get_result();
+    if($row = $resultCheck->fetch_assoc()){
+        $_SESSION['usuario_id'] = $row['id'];
+        $_SESSION['usuraio_email'] = $row['email'];
+    }
 
     if ($resultCheck->num_rows > 0) {
         echo "<div class='container mt-4'><div class='alert alert-danger'>Este e-mail já está cadastrado!</div></div>";
@@ -27,9 +31,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 
     // 2. Inserir usuário
-    $sqlUser = "INSERT INTO usuarios (email, senha, tipo) VALUES (?, ?, ?)";
-    $stmtUser = $conn->prepare($sqlUser);
-    $stmtUser->bind_param("sss", $email, $senha, $tipo);
+   $sql = "INSERT INTO usuarios (email, senha, tipo) VALUES (?, ?, ?)";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("sss", $email, $senhaHash, $tipo);
+$stmt->execute();
 
     if ($stmtUser->execute()) {
         $usuario_id = $stmtUser->insert_id;

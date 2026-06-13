@@ -108,11 +108,12 @@ $total_agendamentos = mysqli_num_rows($resultado);
                 </div>
 
                 <input type="submit" value="🔍 Buscar Consultas" class="btn-filtrar">
-
                 <button type="button" onclick="window.print()" class="btn-print">🖨️ Imprimir Relatório</button>
+                
             </form>
+            
         </div>
-
+            
         <!-- ÁREA IMPRESSA DO RELATÓRIO -->
         <div class="header-relatorio">
             <div>
@@ -160,6 +161,7 @@ $total_agendamentos = mysqli_num_rows($resultado);
         </table>
 
     </div>
+<?php include 'rodape.php'; ?>
 
 </body>
 </html>

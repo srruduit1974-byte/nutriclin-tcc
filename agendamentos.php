@@ -9,6 +9,18 @@ if (session_status() === PHP_SESSION_NONE) {
 require 'conexao.php';
 require 'config.php';
 
+// Ações de atualização de status
+if (isset($_GET['concluir'])) {
+    $id = (int)$_GET['concluir'];
+    $conn->query("UPDATE agendamentos SET status='concluida' WHERE id=$id");
+}
+
+if (isset($_GET['cancelar'])) {
+    $id = (int)$_GET['cancelar'];
+    $conn->query("UPDATE agendamentos SET status='cancelada' WHERE id=$id");
+}
+
+
 // Se não estiver logado, volta para login
 if (!isset($_SESSION['usuario_id'])) {
     header("Location: login.php");
@@ -78,6 +90,8 @@ $resultPacientes = $conn->query($sqlPacientes);
 </head>
 <body>
 
+
+
 <div class="container">
     <h2>Novo Agendamento</h2>
 
@@ -116,6 +130,6 @@ $resultPacientes = $conn->query($sqlPacientes);
     
     <a href="dashboard.php" class="nav-link">Voltar ao Painel</a>
 </div>
-
+<?php include 'rodape.php'; ?>
 </body>
 </html>

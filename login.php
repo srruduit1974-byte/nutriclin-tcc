@@ -1,70 +1,49 @@
 <?php
-session_start();
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+
 require 'conexao.php';
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
-// Inclui o Bootstrap para estilizar o erro, caso aconteça
-echo '<link href="https://jsdelivr.net" rel="stylesheet">';
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $email = trim($_POST['email']);
+    $senha = trim($_POST['senha']);
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $email = $_POST['email'];
-    $senha = $_POST['senha'];
+    $sql = "SELECT u.id, u.senha, u.tipo,
+                   n.id AS nutricionista_id,
+                   COALESCE(n.nome, u.email) AS nome
+            FROM usuarios u
+            LEFT JOIN nutricionistas n ON n.usuario_id = u.id
+            WHERE u.email = ?";
 
-    // 1. Busca o usuário pelo e-mail
-    $sql = "SELECT * FROM usuarios WHERE email = ?";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("s", $email);
     $stmt->execute();
     $result = $stmt->get_result();
-    $usuario = $result->fetch_assoc();
 
-    // 2. Valida a senha criptografada
-    if ($usuario && password_verify($senha, $usuario['senha'])) {
-        
-        // Dados básicos de sessão comuns a todos
-        $_SESSION['usuario_id'] = $usuario['id']; // Altere para 'id_usuario' se for esse o nome no seu banco
-        $_SESSION['tipo']       = $usuario['tipo'];
-        $_SESSION['email_user'] = $usuario['email'];
-
-        // 3. Verifica o tipo para carregar as informações do perfil específico
-        if ($usuario['tipo'] === 'nutricionista') {
-            // [Ajustado] Agora também busca o 'nome' do nutricionista para exibir na tela
-            $stmtNutri = $conn->prepare("SELECT id, nome FROM nutricionistas WHERE usuario_id = ?");
-            $stmtNutri->bind_param("i", $usuario['id']);
-            $stmtNutri->execute();
-            $resultadoNutri = $stmtNutri->get_result();
-            
-            if ($nutri = $resultadoNutri->fetch_assoc()) {
-                $_SESSION['nutricionista_id'] = $nutri['id'];
-                $_SESSION['user_nome']        = $nutri['nome']; // Guarda o nome real do Nutricionista
-            }
-            
-        } elseif ($usuario['tipo'] === 'estagiario') {
-            // [NOVO] Busca as informações necessárias do Estagiário
-            $stmtEst = $conn->prepare("SELECT id, nome_estagiario FROM estagiarios WHERE usuario_id = ?");
-            $stmtEst = $conn->prepare("SELECT id, nome_estagiario FROM estagiarios WHERE usuario_id = ?"); // Certifique-se de que a PK na tabela chama 'id' ou ajuste aqui
-            $stmtEst->bind_param("i", $usuario['id']);
-            $stmtEst->execute();
-            $resultadoEst = $stmtEst->get_result();
-            
-            if ($est = $resultadoEst->fetch_assoc()) {
-                $_SESSION['estagiario_id'] = $est['id'];
-                $_SESSION['user_nome']      = $est['nome_estagiario']; // Guarda o nome real do Estagiário
-            }
+    if ($row = $result->fetch_assoc()) {
+        if (password_verify($senha, $row['senha'])) {
+            session_regenerate_id(true);
+            $_SESSION['usuario_id']       = $row['id'];
+            $_SESSION['usuario_tipo']     = $row['tipo'] ?? 'desconhecido';
+            $_SESSION['nutricionista_id'] = $row['nutricionista_id'];
+            $_SESSION['user_nome']        = $row['nome'];   // nunca será NULL por causa do COALESCE
+            $_SESSION['email_user']       = $email;         // fallback explícito
+            header("Location: dashboard.php");
+            exit();
+        } else {
+            header("Location: index.php?erro=1");
+            exit();
         }
-
-        // Redireciona com segurança para a dashboard
-        header("Location: dashboard.php");
-        exit();
-        
     } else {
-        // Alerta amigável do Bootstrap com botão para tentar novamente
-        echo "
-        <div class='container mt-5'>
-            <div class='alert alert-danger role='alert'>
-                <strong>Erro:</strong> E-mail ou senha incorretos!
-            </div>
-            <button onclick='window.history.back()' class='btn btn-secondary btn-sm'>Voltar e tentar novamente</button>
-        </div>";
+        header("Location: index.php?erro=1");
+        exit();
     }
+
+    $stmt->close();
 }
 ?>

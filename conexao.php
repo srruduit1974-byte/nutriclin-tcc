@@ -1,6 +1,6 @@
 <?php
 $host = "localhost";
-$user = "root";
+$user = "nutri_app";
 $pass = "nutrinubia";
 $db = "nutriclin_db"; 
 
